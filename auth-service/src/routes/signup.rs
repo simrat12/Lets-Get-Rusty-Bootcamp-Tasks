@@ -12,3 +12,5 @@ pub struct SignupRequest {
     #[serde(rename = "requires2FA")]
     pub requires_2fa: bool,
 }
+
+// Test comment
