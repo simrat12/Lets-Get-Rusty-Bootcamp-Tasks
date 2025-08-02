@@ -1,5 +1,9 @@
 use auth_service::Application;
 use uuid::Uuid;
+use auth_service::services::hashmap_user_store::HashmapUserStore;
+use auth_service::app_state::app_state::AppState;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 pub struct TestApp {
     pub address: String,
@@ -8,7 +12,10 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let app = Application::build("127.0.0.1:0")
+        let user_store = Arc::new(RwLock::new(Box::new(HashmapUserStore::default()) as Box<dyn auth_service::domain::data_score::UserStore + Send + Sync>));
+        let app_state = AppState::new(user_store);
+
+        let app = Application::build(app_state, "0.0.0.0:0")
             .await
             .expect("Failed to build app");
 

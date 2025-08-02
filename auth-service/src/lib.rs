@@ -1,11 +1,43 @@
-use axum::serve::Serve;
-use axum::Router;
 use std::error::Error;
 use tower_http::services::ServeDir;
-use axum::response::{Html, IntoResponse};
-use axum::routing::post;
-use axum::http::StatusCode;
+use crate::app_state::app_state::AppState;
+
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::post,
+    serve::Serve,
+    Json, Router,
+};
+use crate::domain::error::AuthAPIError;
+use serde::{Deserialize, Serialize};
+
 pub mod routes;
+pub mod services;
+pub mod domain;
+pub mod app_state;
+
+
+#[derive(Serialize, Deserialize)]
+pub struct ErrorResponse {
+    pub error: String,
+}
+
+impl IntoResponse for AuthAPIError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
+            AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::UnexpectedError => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            }
+        };
+        let body = Json(ErrorResponse {
+            error: error_message.to_string(),
+        });
+        (status, body).into_response()
+    }
+}
 
 // This struct encapsulates our application-related logic.
 pub struct Application {
@@ -16,7 +48,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         // Move the Router definition from `main.rs` to here.
         // Also, remove the `hello` route.
         // We don't need it at this point!
@@ -26,7 +58,8 @@ impl Application {
         .route("/login", post(routes::login))
         .route("/logout", post(routes::logout))
         .route("/verify-2fa", post(routes::verify_2fa))
-        .route("/verify-token", post(routes::verify_token));
+        .route("/verify-token", post(routes::verify_token))
+        .with_state(app_state);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();
