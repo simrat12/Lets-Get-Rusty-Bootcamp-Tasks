@@ -1,9 +1,9 @@
 use std::error::Error;
-use tower_http::services::ServeDir;
 use crate::app_state::app_state::AppState;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 use axum::{
-    http::StatusCode,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::post,
     serve::Serve,
@@ -16,6 +16,7 @@ pub mod routes;
 pub mod services;
 pub mod domain;
 pub mod app_state;
+pub mod utils;
 
 
 #[derive(Serialize, Deserialize)]
@@ -28,9 +29,13 @@ impl IntoResponse for AuthAPIError {
         let (status, error_message) = match self {
             AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::MalformedInput => (StatusCode::UNPROCESSABLE_ENTITY, "Malformed input"),
+            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Incorrect credentials"),
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
+            AuthAPIError::MissingToken => (StatusCode::BAD_REQUEST, "Missing token"),
+            AuthAPIError::InvalidToken => (StatusCode::UNAUTHORIZED, "Invalid token"),
         };
         let body = Json(ErrorResponse {
             error: error_message.to_string(),
@@ -52,6 +57,20 @@ impl Application {
         // Move the Router definition from `main.rs` to here.
         // Also, remove the `hello` route.
         // We don't need it at this point!
+        let allowed_origins = [
+            "http://localhost:8000".parse()?,
+            // TODO: Replace [YOUR_DROPLET_IP] with your Droplet IP address
+            "http://[YOUR_DROPLET_IP]:8000".parse()?,
+        ];
+
+        let cors = CorsLayer::new()
+            // Allow GET and POST requests
+            .allow_methods([Method::GET, Method::POST])
+            // Allow cookies to be included in requests
+            .allow_credentials(true)
+            .allow_origin(allowed_origins);
+
+
         let router = Router::new()
         .nest_service("/", ServeDir::new("assets"))
         .route("/signup", post(routes::signup))
@@ -59,7 +78,8 @@ impl Application {
         .route("/logout", post(routes::logout))
         .route("/verify-2fa", post(routes::verify_2fa))
         .route("/verify-token", post(routes::verify_token))
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(cors);
 
         let listener = tokio::net::TcpListener::bind(address).await?;
         let address = listener.local_addr()?.to_string();

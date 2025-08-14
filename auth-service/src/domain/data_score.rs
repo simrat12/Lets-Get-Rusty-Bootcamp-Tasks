@@ -20,3 +20,15 @@ pub enum UserStoreError {
     InvalidCredentials,
     UnexpectedError,
 }
+
+pub trait BannedTokenStore: Send + Sync {
+    fn store_token(&mut self, token: &str) -> Result<(), BannedTokenStoreError>;
+    fn is_token_banned(&self, token: &str) -> Result<bool, BannedTokenStoreError>; // Do we need the Result<bool, BannedTokenStoreError> or just bool?
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BannedTokenStoreError {
+    TokenAlreadyBanned,
+    TokenNotFound,
+    UnexpectedError,
+}
