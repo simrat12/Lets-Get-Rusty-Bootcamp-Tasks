@@ -35,7 +35,7 @@ async fn verify_2fa_returns_200() {
     let verify_response = app.post_verify_2fa(&serde_json::json!({
         "email": "test@example.com",
         "loginAttemptId": two_fa_response.login_attempt_id,
-        "twoFactorCode": actual_code
+        "2FACode": actual_code
     })).await;
 
     assert_eq!(verify_response.status().as_u16(), 200);
@@ -60,7 +60,7 @@ async fn should_return_400_if_invalid_input() {
     let response = app.post_verify_2fa(&serde_json::json!({
         "email": "invalid-email-format",
         "loginAttemptId": "invalid-login-attempt-id",
-        "twoFactorCode": "invalid-two-factor-code"
+        "2FACode": "invalid-two-factor-code"
     })).await;
 
     assert_eq!(response.status().as_u16(), 400);
@@ -73,7 +73,7 @@ async fn should_return_401_if_incorrect_credentials() {
     let response = app.post_verify_2fa(&serde_json::json!({
         "email": "test@example.com",
         "loginAttemptId": "123e4567-e89b-12d3-a456-426614174000",
-        "twoFactorCode": "123456"
+        "2FACode": "123456"
     })).await;
 
     assert_eq!(response.status().as_u16(), 401);
@@ -125,7 +125,7 @@ async fn should_return_401_if_old_code() {
     let verify_response = app.post_verify_2fa(&serde_json::json!({
         "email": "test123@example.com",
         "loginAttemptId": first_login_attempt_id,
-        "twoFactorCode": first_actual_code // Use the actual old code
+        "2FACode": first_actual_code // Use the actual old code
     })).await;
     
     assert_eq!(verify_response.status().as_u16(), 401);
@@ -165,7 +165,7 @@ async fn should_return_401_if_same_code_twice() {
     let first_verify_response = app.post_verify_2fa(&serde_json::json!({
         "email": "test123@example.com",
         "loginAttemptId": login_attempt_id,
-        "twoFactorCode": actual_code
+        "2FACode": actual_code
     })).await;
 
     assert_eq!(first_verify_response.status().as_u16(), 200);
@@ -174,7 +174,7 @@ async fn should_return_401_if_same_code_twice() {
     let second_verify_response = app.post_verify_2fa(&serde_json::json!({
         "email": "test123@example.com",
         "loginAttemptId": login_attempt_id,
-        "twoFactorCode": actual_code  // Same code as above
+        "2FACode": actual_code  // Same code as above
     })).await;
 
     assert_eq!(second_verify_response.status().as_u16(), 401);
