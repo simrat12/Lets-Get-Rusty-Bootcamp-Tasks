@@ -18,14 +18,18 @@ pub fn generate_auth_cookie(email: &Email) -> Result<Cookie<'static>, GenerateTo
 
 // Create cookie and set the value to the passed-in token string 
 fn create_auth_cookie(token: String) -> Cookie<'static> {
-    let cookie = Cookie::build((JWT_COOKIE_NAME, token))
-        .domain("localhost") // Set domain to localhost to share between services
+    let mut cookie_builder = Cookie::build((JWT_COOKIE_NAME, token))
         .path("/") // apple cookie to all URLs on the server
         .http_only(true) // prevent JavaScript from accessing the cookie
-        .same_site(SameSite::Lax) // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
-        .build();
-
-    cookie
+        .same_site(SameSite::Lax); // send cookie with "same-site" requests, and with "cross-site" top-level navigations.
+    
+    // Only set domain in production to allow cross-service sharing
+    // In tests, we don't set domain so it works with 127.0.0.1
+    if std::env::var("RUST_ENV").unwrap_or_default() == "production" {
+        cookie_builder = cookie_builder.domain("localhost");
+    }
+    
+    cookie_builder.build()
 }
 
 #[derive(Debug)]
