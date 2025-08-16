@@ -2,6 +2,8 @@ use auth_service::Application;
 use uuid::Uuid;
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::services::banned_token_store::HashsetBannedTokenStore;
+use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
+use auth_service::services::mock_email_client::MockEmailClient;
 use auth_service::app_state::app_state::AppState;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -28,7 +30,9 @@ impl TestApp {
 
         let user_store = Arc::new(RwLock::new(Box::new(HashmapUserStore::default()) as Box<dyn auth_service::domain::data_score::UserStore + Send + Sync>));
         let banned_token_store = Arc::new(RwLock::new(Box::new(HashsetBannedTokenStore::default()) as Box<dyn auth_service::domain::data_score::BannedTokenStore + Send + Sync>));
-        let app_state = AppState::new(user_store, banned_token_store);
+        let two_fa_code_store = Arc::new(RwLock::new(Box::new(HashmapTwoFACodeStore::default()) as Box<dyn auth_service::domain::data_score::TwoFACodeStore + Send + Sync>));
+        let email_client = Arc::new(RwLock::new(Box::new(MockEmailClient::default()) as Box<dyn auth_service::domain::EmailClient + Send + Sync>));
+        let app_state = AppState::new(user_store, banned_token_store, two_fa_code_store, email_client);
 
         let app = Application::build(app_state.clone(), &test::APP_ADDRESS) // Clone the app_state
             .await
@@ -101,13 +105,6 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn verify_2fa(&self) -> reqwest::Response {
-        self.http_client
-            .post(&format!("{}/verify-2fa", &self.address))
-            .send()
-            .await
-            .expect("Failed to execute request.")
-    }
 
     pub async fn verify_token(&self) -> reqwest::Response {
         self.http_client
@@ -121,6 +118,18 @@ impl TestApp {
     pub async fn is_token_banned(&self, token: &str) -> bool {
         let banned_token_store = self.app_state.banned_token_store.read().await;
         banned_token_store.is_token_banned(token).unwrap_or(false) // Remove .await and add unwrap_or(false)
+    }
+
+    pub async fn post_verify_2fa<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(format!("{}/verify-2fa", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
     }
 }
 
