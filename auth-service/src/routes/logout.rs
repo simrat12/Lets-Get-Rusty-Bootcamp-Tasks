@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::{CookieJar, cookie::Cookie};
+use crate::data_stores::data_store::BannedTokenStore;
 
 use crate::{
     domain::error::AuthAPIError,
@@ -19,10 +20,10 @@ pub async fn logout(
 
     let token = cookie.value().to_owned();
 
-    // Validate token
+    // Validate token first - only valid tokens should be allowed to logout
     {
         let banned_store = state.banned_token_store.read().await;
-        if let Err(_) = validate_token(&token, &**banned_store).await {
+        if let Err(_) = validate_token(&token, &*banned_store).await {
             return (jar, Err(AuthAPIError::InvalidToken));
         }
     }
@@ -30,7 +31,7 @@ pub async fn logout(
     // Ban the token by storing it in the banned token store
     {
         let mut banned_store = state.banned_token_store.write().await;
-        if let Err(_) = banned_store.store_token(&token) {
+        if let Err(_) = banned_store.store_token(token).await {
             // If token is already banned, that's fine - we can still proceed
         }
     }

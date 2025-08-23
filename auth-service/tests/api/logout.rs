@@ -14,16 +14,18 @@ use crate::helpers::TestApp;
 
 #[tokio::test]
 async fn should_return_400_if_jwt_cookie_missing() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let response = app.logout().await;
 
     assert_eq!(response.status().as_u16(), 400);
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_invalid_token() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // add invalid cookie using the same URL as the test app
     app.cookie_jar.add_cookie_str(
@@ -37,11 +39,13 @@ async fn should_return_401_if_invalid_token() {
     let response = app.logout().await;
 
     assert_eq!(response.status().as_u16(), 401);
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_200_if_valid_jwt_cookie() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     let email = "test@test.com";
 
@@ -89,11 +93,13 @@ async fn should_return_200_if_valid_jwt_cookie() {
     // Verify that the token is no longer valid after logout
     let verify_after_logout_response = app.post_verify_token(&verify_body).await;
     assert_eq!(verify_after_logout_response.status().as_u16(), 401);
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_logout_called_twice_in_a_row() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new().await;
 
     // First signup a user with 2FA disabled
     let signup_body = serde_json::json!({
@@ -118,4 +124,6 @@ async fn should_return_400_if_logout_called_twice_in_a_row() {
     // Now logout again
     let logout_response = app.logout().await;
     assert_eq!(logout_response.status().as_u16(), 400);
+    
+    app.clean_up().await;
 }

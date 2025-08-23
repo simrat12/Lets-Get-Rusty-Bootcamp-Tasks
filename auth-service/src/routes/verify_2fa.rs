@@ -1,7 +1,7 @@
 use axum::{extract::State, response::IntoResponse, http::StatusCode, Json};
 use crate::{AuthAPIError, AppState};
 use crate::domain::email::Email;
-use crate::domain::data_score::{LoginAttemptId, TwoFACode};
+use crate::data_stores::data_store::{LoginAttemptId, TwoFACode};
 use serde::Deserialize;
 use crate::utils::constants::JWT_COOKIE_NAME;
 use crate::utils::auth::generate_auth_cookie;

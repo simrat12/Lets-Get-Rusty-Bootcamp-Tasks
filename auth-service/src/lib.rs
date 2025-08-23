@@ -11,12 +11,15 @@ use axum::{
 };
 use crate::domain::error::AuthAPIError;
 use serde::{Deserialize, Serialize};
+use sqlx::{PgPool, postgres::PgPoolOptions};
+use redis::{Client, RedisResult};
 
 pub mod routes;
 pub mod services;
 pub mod domain;
 pub mod app_state;
 pub mod utils;
+pub mod data_stores;
 
 
 #[derive(Serialize, Deserialize)]
@@ -94,4 +97,20 @@ impl Application {
         println!("listening on {}", &self.address);
         self.server.await
     }
+}
+
+pub async fn get_postgres_pool(url: &str) -> Result<PgPool, sqlx::Error> {
+    // Create a new PostgreSQL connection pool
+    println!("🔗 Attempting to connect to PostgreSQL at: {}", url);
+    let pool = PgPoolOptions::new().max_connections(5).connect(url).await?;
+    println!("✅ PostgreSQL connection pool created successfully");
+    Ok(pool)
+}
+
+pub fn get_redis_client(redis_hostname: String) -> RedisResult<Client> {
+    let redis_url = format!("redis://{}:6379/", redis_hostname);
+    println!("🔗 Attempting to connect to Redis at: {}", redis_url);
+    let client = redis::Client::open(redis_url)?;
+    println!("✅ Redis client created successfully");
+    Ok(client)
 }

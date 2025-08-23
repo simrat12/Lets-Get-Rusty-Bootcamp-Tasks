@@ -5,7 +5,7 @@ use crate::domain::password::Password;
 
 use crate::{
     AppState,
-    domain::{error::AuthAPIError, user::User, data_score::UserStore},
+    domain::{error::AuthAPIError, user::User},
 };
 
 pub async fn signup(

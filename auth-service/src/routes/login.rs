@@ -1,15 +1,14 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use crate::domain::email::Email;
 use crate::domain::password::Password;
-use crate::domain::data_score::{LoginAttemptId, TwoFACode, TwoFACodeStore};
-use crate::domain::EmailClient;
+use crate::data_stores::data_store::{LoginAttemptId, TwoFACode};
 use serde::{Deserialize, Serialize};
 use axum_extra::extract::CookieJar;
 use crate::utils::auth::generate_auth_cookie;
 
 use crate::{
     AppState,
-    domain::{error::AuthAPIError, user::User, data_score::UserStore},
+    domain::{error::AuthAPIError, user::User},
 };
 
 pub async fn login(
