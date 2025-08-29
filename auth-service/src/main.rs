@@ -3,16 +3,18 @@ use auth_service::data_stores::data_store::{BannedTokenStoreType, TwoFACodeStore
 use auth_service::data_stores::redis_two_fa_code_store::RedisTwoFACodeStore;
 use auth_service::data_stores::postgres_user_store::PostgresUserStore;
 use auth_service::data_stores::redis_banned_token_store::RedisBannedTokenStore;
-use auth_service::app_state::app_state::AppState;
+use auth_service::app_state::AppState;
 use auth_service::services::mock_email_client::MockEmailClient;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use axum::response::Html;
 use auth_service::utils::constants::{prod, DATABASE_URL, REDIS_HOST_NAME};
+use auth_service::utils::tracing::init_tracing;
 use sqlx::PgPool;
 
 #[tokio::main]
 async fn main() {
+    init_tracing();
     let pg_pool = configure_postgresql().await;
 
 

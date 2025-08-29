@@ -22,6 +22,7 @@ impl PostgresUserStore {
 
 #[async_trait::async_trait]
 impl UserStore for PostgresUserStore {
+    #[tracing::instrument(name = "Adding user to PostgreSQL", skip_all)]
     async fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         let password_hash = compute_password_hash(&user.password.as_ref()).await
             .map_err(|_| UserStoreError::UnexpectedError)?;
@@ -45,6 +46,7 @@ impl UserStore for PostgresUserStore {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Retrieving user from PostgreSQL", skip_all)]
     async fn get_user(&self, email: &Email) -> Result<User, UserStoreError> {
         let user_row = sqlx::query!(
             "SELECT email, password_hash, requires_2fa FROM users WHERE email = $1",
@@ -64,6 +66,7 @@ impl UserStore for PostgresUserStore {
         Ok(user)
     }
 
+    #[tracing::instrument(name = "Validating user credentials in PostgreSQL", skip_all)]
     async fn validate_user(&self, email: &Email, password: &Password) -> Result<(), UserStoreError> {
         let user = self.get_user(email).await?;
         
@@ -74,6 +77,7 @@ impl UserStore for PostgresUserStore {
     }
 }
 
+#[tracing::instrument(name = "Verify password hash", skip_all)]
 async fn verify_password_hash(
     expected_password_hash: &str,
     password_candidate: &str,
@@ -96,6 +100,7 @@ async fn verify_password_hash(
     .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?
 }
 
+#[tracing::instrument(name = "Computing password hash", skip_all)]
 async fn compute_password_hash(password: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
     let salt: SaltString = SaltString::generate(&mut rand::thread_rng());
     let password_hash = Argon2::new(
